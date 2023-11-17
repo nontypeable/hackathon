@@ -30,8 +30,6 @@ class Client():
             await server.serve_forever()
 
     def handle_request(self, transport, host, data):
-        """ Общяемся с клиентами по протоколу RTSP
-        """
         ask, option = self._request(data)
         session_id = self._get_session_id(ask)
 
@@ -78,9 +76,6 @@ class Client():
         return self.camera_hash, session_id
 
     def _get_rtp_info(self):
-        """ Строим строку "RTP-Info" для клиента, изменив время rtptime для корректной работы счетчика.
-            По хорошему, надо просто запросить камеру, но в режиме TCP (interleaved) им это не нравится.
-        """
         rtp_info = Shared.data[self.camera_hash]['rtp_info']
 
         print(rtp_info)
@@ -104,8 +99,6 @@ class Client():
         return res
 
     def _request(self, data):
-        """ Разбираем ответ клиента
-        """
         try:
             ask = data.decode()
         except Exception:
@@ -130,8 +123,6 @@ class Client():
         return ask, res.group(1)
 
     def _response(self, transport, *lines):
-        """ Отдаем клиенту данные строки
-        """
         reply = 'RTSP/1.0 200 OK\r\n' \
             f'CSeq: {self.cseq}\r\n'
 
@@ -144,16 +135,12 @@ class Client():
         print(f'*** Reply:\n{reply}')
 
     def _get_cseq(self, ask):
-        """ Текущий счетчик из запроса клиента
-        """
         res = re.match(r'.+?\r\nCSeq: (\d+)', ask, re.DOTALL)
         if not res:
             raise RuntimeError('invalid incoming CSeq')
         return int(res.group(1))
 
     def _get_session_id(self, ask):
-        """ ID сессии из запроса клиента
-        """
         res = re.match(r'.+?\nSession: *([^;\r\n]+)', ask, re.DOTALL)
         if res:
             return res.group(1).strip()
@@ -161,16 +148,12 @@ class Client():
         return ''.join(choices(string.ascii_lowercase + string.digits, k=9))
 
     def _get_ports(self, ask):
-        """ Номера портов из запроса клиента
-        """
         res = re.match(r'.+?\nTransport:[^\n]+client_port=(\d+)-(\d+)', ask, re.DOTALL)
         if not res:
             raise RuntimeError('invalid transport ports')
         return [int(res.group(1)), int(res.group(2))]
 
     def _get_description(self):
-        """ Блок SDP из запроса клиента
-        """
         sdp = Shared.data[self.camera_hash]['description']
         res = 'v=0\r\n' \
             f'o=- {randrange(100000, 999999)} {randrange(1, 10)} IN IP4 {Config.local_ip}\r\n' \
@@ -194,8 +177,6 @@ class Client():
         return res
 
     def _check_web_limit(self, host):
-        """ Ограничим веб подключения. Локальные - без ограничений.
-        """
         if not Config.web_limit or self._get_client_type(host) == 'local':
             return
         web_sessions = []
@@ -210,9 +191,6 @@ class Client():
                 # Shared.data item will be deleted by ClientTcpProtocol.connection_lost callback
 
     def _get_client_type(self, host):
-        """ Хелпер для определения типа подключения.
-            Если IP клиента совпадает с локальным адресом сервера, то это веб клиент за ssh туннелем
-        """
         if host == '127.0.0.1' \
             or host == 'localhost' \
                 or (host.startswith('192.168.') and host != Config.local_ip):
@@ -221,8 +199,6 @@ class Client():
 
 
 class ClientTcpProtocol(asyncio.Protocol):
-    """ Этот колбэк вызывается при подключении к серверу каждого нового клиента
-    """
     def __init__(self):
         self.client = Client()
         self.camera_hash, self.session_id = None, None
