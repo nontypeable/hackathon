@@ -1,55 +1,61 @@
-import sys
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
 import hashlib
 import os
+from dotenv import load_dotenv
 
-sys.path.append("C:/Projects/hack")
-import utils
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "env.env"))
 
-#путь будет меняться в зависимости от машины, тестовый вариант
-path = "C:/Projects/hack/qrscanner/images"
+# путь для сохранения изображений
+images_path = os.getenv("IMAGES_PATH")
 
-#генерация разных названий, чтобы данные о qr кодах поступали своевременно
-def generate_filename(barcode_data: str) -> str:
+
+def hash_from_barcode(barcode_data: str) -> str:
+    """функция для преобразования данных из qr-кода в hash"""
+
     barcode_bytes = barcode_data.encode('utf-8')
+    return hashlib.md5(barcode_bytes).hexdigest()
 
-    hash = hashlib.md5(barcode_bytes).hexdigest()
 
-    filename = f"image_{hash}.jpg"
+def process_and_save_barcode_image(image):
+    """функция для обработки сохранения qr-кодов"""
 
-    return filename
-
-#декодинг + сохранение изображения на указанный путь
-def decoder(image):
+    # преобразование изображения в оттенки серого
     gray_img = cv2.cvtColor(image, 0)
-    barcode = decode(gray_img)
 
-    for obj in barcode:
+    qr_code_objects = [obj for obj in decode(gray_img) if obj.type == 'QRCODE']
+
+    # для каждого распознанного qr-кода
+    for obj in qr_code_objects:
+        # извлечение координат и создание контура вокруг qr-кода
         points = obj.polygon
         (x, y, w, h) = obj.rect
         pts = np.array(points, np.int32)
         pts = pts.reshape((-1, 1, 2))
         cv2.polylines(image, [pts], True, (0, 255, 0), 3)
 
-        barcodeData = obj.data.decode("utf-8")
-        barcodeType = obj.type
-        string = "Data " + str(barcodeData) + " | Type " + str(barcodeType)
-        
-        cv2.putText(frame, string, (x, y), cv2.FONT_ITALIC, 0.8, (255, 0, 0), 2)
-        print("Barcode: " + barcodeData + " | Type: " + barcodeType)
-        
-        filename = generate_filename(barcodeData)
-        # Сохранение изображения
-        os.chdir(path) 
-        cv2.imwrite(filename, image)
+        # извлечение данных и типа qr-кода
+        barcode_data = obj.data.decode("utf-8")
+        barcode_type = obj.type
+        string = "Data " + str(barcode_data) + " | Type " + str(barcode_type)
 
-#захват видео с камеры (конкретно тут с вебки)
+        # отображение данных и типа qr-кода
+        cv2.putText(frame, string, (x, y), cv2.FONT_ITALIC, 0.8, (255, 0, 0), 2)
+        print("Barcode: " + barcode_data + " | Type: " + barcode_type)
+
+        # генерация имени файла
+        file_path = os.path.join(images_path, f"image_{hash_from_barcode(barcode_data)}.jpg")
+        # сохранение изображения
+        cv2.imwrite(file_path, image)
+
+
+# захват видео с камеры
+# в этом случае захват происходит в веб-камеры
 cap = cv2.VideoCapture(0)
 while True:
     ret, frame = cap.read()
-    decoder(frame)
+    process_and_save_barcode_image(frame)
     cv2.imshow('Image', frame)
     code = cv2.waitKey(10)
     if code == ord('q'):
