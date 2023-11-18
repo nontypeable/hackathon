@@ -2,3 +2,5 @@ asyncio==3.4.3
 numpy==1.26.2
 opencv-python==4.8.1.78
 pyzbar==0.1.9
+
+python-dotenv~=1.0.0
