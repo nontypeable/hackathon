@@ -1,9 +1,11 @@
+import hashlib
+
 import cv2
 import numpy as np
-from pyzbar.pyzbar import decode
-import hashlib
-import os
 from dotenv import load_dotenv
+from pyzbar.pyzbar import decode
+
+from db.db import *
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "env.env"))
 
@@ -45,7 +47,10 @@ def process_and_save_barcode_image(image):
         print("Barcode: " + barcode_data + " | Type: " + barcode_type)
 
         # генерация имени файла
-        file_path = os.path.join(images_path, f"image_{hash_from_barcode(barcode_data)}.jpg")
+        hash = hash_from_barcode(barcode_data)
+
+        file_path = os.path.join(images_path, f"image_{hash}.jpg")
+
         # сохранение изображения
         cv2.imwrite(file_path, image)
 
