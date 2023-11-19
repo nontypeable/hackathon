@@ -72,6 +72,7 @@ def create() -> None:
     CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         status TEXT
+        qr_code TEXT
     );
     """
     execute(create_table_sql, params=())
