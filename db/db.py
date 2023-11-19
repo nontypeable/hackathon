@@ -65,3 +65,15 @@ def _get_result_with_column_names(cursor: sqlite3.Cursor, row: sqlite3.Row) -> d
     for index, column_name in enumerate(column_names):
         resulting_row[column_name] = row[index]
     return resulting_row
+
+
+def create() -> None:
+    create_table_sql = """
+    CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        status TEXT,
+        departure_time DATETIME,
+        arrival_time DATETIME
+    );
+    """
+    execute(create_table_sql, params=())
