@@ -72,8 +72,9 @@ def create() -> None:
     CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         status TEXT,
-        departure_time DATETIME,
+        departure_time DATETIME NOT NULL,
         arrival_time DATETIME
     );
     """
     execute(create_table_sql, params=())
+
