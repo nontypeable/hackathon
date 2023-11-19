@@ -4,7 +4,7 @@ from db.db import *
 
 
 def get_qr_info_and_insert(url: str):
-    response = requests.get(url, params=params)
+    response = requests.get(url)
 
     if response.status_code == 200:
         data = response.json()
@@ -16,7 +16,7 @@ def get_qr_info_and_insert(url: str):
             if existing_record:
                 print("Record with this QR code already exists.")
             else:
-                execute("INSERT INTO products (qr_code, other_data) VALUES (?, ?)", (qr_code, other_data))
+                execute("INSERT INTO products (qr_code) VALUES (?, ?)", (qr_code))
 
         return data
     else:
