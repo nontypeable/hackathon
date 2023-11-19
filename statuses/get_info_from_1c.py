@@ -3,7 +3,7 @@ import requests
 from db.db import *
 
 
-def get_qr_info_and_insert(url: str, params: dict):
+def get_qr_info_and_insert(url: str):
     response = requests.get(url, params=params)
 
     if response.status_code == 200:
