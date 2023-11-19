@@ -5,13 +5,15 @@ import numpy as np
 from dotenv import load_dotenv
 from pyzbar.pyzbar import decode
 
-from db.db import *
+from statuses.get_info_from_1c import *
+from statuses.types_of_statuses import *
 
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "env.env"))
 
 # путь для сохранения изображений
 images_path = os.getenv("IMAGES_PATH")
 
+get_qr_info_and_insert(os.getenv("1C_URL"))
 
 def hash_from_barcode(barcode_data: str) -> str:
     """функция для преобразования данных из qr-кода в hash"""
@@ -50,6 +52,8 @@ def process_and_save_barcode_image(image):
         hash = hash_from_barcode(barcode_data)
 
         file_path = os.path.join(images_path, f"image_{hash}.jpg")
+        sql = """UPDATE products SET status = ? WHERE id = ?;"""
+        execute(sql, (Statuses.exists_production, hash))
 
         # сохранение изображения
         cv2.imwrite(file_path, image)
