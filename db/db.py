@@ -1,75 +1,65 @@
 import os
-import asyncio
-from collections.abc import Iterable
-from typing import Any, LiteralString
-
-import aiosqlite
+import sqlite3
+from typing import Any, Literal
 
 db_path = os.path.join(os.path.dirname(__file__), "database.db")
 
 
-async def get_db() -> aiosqlite.Connection:
-    if not getattr(get_db, "db", None):
-        db = await aiosqlite.connect(db_path)
+def get_db() -> sqlite3.Connection:
+    if not hasattr(get_db, "db"):
+        db = sqlite3.connect(db_path)
         get_db.db = db
 
     return get_db.db
 
 
-async def fetch_all(
-        sql: LiteralString, params: Iterable[Any] | None = None
-) -> list[dict]:
-    cursor = await _get_cursor(sql, params)
-    rows = await cursor.fetchall()
+def fetch_all(sql: Literal[str], params: tuple[Any, ...] | None = None) -> list[dict]:
+    cursor = _get_cursor(sql, params)
+    rows = cursor.fetchall()
     results = []
     for row_ in rows:
         results.append(_get_result_with_column_names(cursor, row_))
-    await cursor.close()
+    cursor.close()
     return results
 
 
-async def fetch_one(
-        sql: LiteralString, params: Iterable[Any] | None = None
-) -> dict | None:
-    cursor = await _get_cursor(sql, params)
-    row_ = await cursor.fetchone()
+def fetch_one(sql: Literal[str], params: tuple[Any, ...] | None = None) -> dict | None:
+    cursor = _get_cursor(sql, params)
+    row_ = cursor.fetchone()
     if not row_:
-        await cursor.close()
+        cursor.close()
         return None
     row = _get_result_with_column_names(cursor, row_)
-    await cursor.close()
+    cursor.close()
     return row
 
 
-async def execute(
-        sql: LiteralString, params: Iterable[Any] | None = None, *, autocommit: bool = True
-) -> None:
-    db = await get_db()
-    args: tuple[LiteralString, Iterable[Any] | None] = (sql, params)
-    await db.execute(*args)
+def execute(sql: Literal[str], params: tuple[Any, ...] | None = None, autocommit: bool = True) -> None:
+    db = get_db()
+    args: tuple[Literal[str], tuple[Any, ...] | None] = (sql, params)
+    cursor = db.cursor()
+    cursor.execute(*args)
     if autocommit:
-        await db.commit()
+        db.commit()
 
 
 def close_db() -> None:
-    asyncio.run(_async_close_db())
+    _close_db()
 
 
-async def _async_close_db() -> None:
-    await (await get_db()).close()
+def _close_db() -> None:
+    get_db().close()
 
 
-async def _get_cursor(
-        sql: LiteralString, params: Iterable[Any] | None
-) -> aiosqlite.Cursor:
-    db = await get_db()
-    args: tuple[LiteralString, Iterable[Any] | None] = (sql, params)
-    cursor = await db.execute(*args)
-    db.row_factory = aiosqlite.Row
+def _get_cursor(sql: Literal[str], params: tuple[Any, ...] | None) -> sqlite3.Cursor:
+    db = get_db()
+    args: tuple[Literal[str], tuple[Any, ...] | None] = (sql, params)
+    cursor = db.cursor()
+    cursor.execute(*args)
     return cursor
 
 
-def _get_result_with_column_names(cursor: aiosqlite.Cursor, row: aiosqlite.Row) -> dict:
+def _get_result_with_column_names(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict:
     column_names = [d[0] for d in cursor.description]
     resulting_row = {}
     for index, column_name in enumerate(column_names):
